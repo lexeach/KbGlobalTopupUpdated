@@ -538,7 +538,7 @@ const WriteAbleFun = () => {
   };
 
   const copyRefferalLink = (values) => {
-    const referralLink = `http://localhost:5173?${userId}`;
+    const referralLink = `https://kbglobal.io?${userId}`;
     navigator.clipboard
       .writeText(referralLink)
       .then(() => {
@@ -863,7 +863,7 @@ const WriteAbleFun = () => {
           </div>
         </div> */}
         {/* Register function  */}
-        <div className="col-lg-6 mt-4">
+        {/* <div className="col-lg-6 mt-4">
           <div className="swap-wrap p-5 mt-40 position-relative">
             <div className="reg-calac position-absolutex top-15 d-flexx text-center mb-2">
               <div className="">
@@ -906,7 +906,6 @@ const WriteAbleFun = () => {
                     ]}
                     className="node-title"
                   >
-                    {/* <input type="hidden"  /> */}
                     <Input
                       className="input_filed"
                       placeholder="0"
@@ -941,7 +940,7 @@ const WriteAbleFun = () => {
               </div>
             </div>
           </div>
-        </div>
+        </div> */}
         {/* TopUp function  */}
         <div className="col-lg-6 mt-4">
           <div className="swap-wrap p-5 mt-40 position-relative">

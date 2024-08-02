@@ -4,10 +4,23 @@ import { formatEther } from "ethers/utils";
 import dayjs from "dayjs";
 import { BigNumberish } from "ethers";
 
-import { contract_address, contract_abi } from "../contract";
+// import { contract_address, contract_abi } from "../contract";
 import { config } from "../config";
 import { useEffect, useState } from "react";
 import CountdownTimer from "./CountdownTimer";
+import { parseEther } from "ethers/utils";
+import { simulateContract, writeContract } from "@wagmi/core";
+import {
+  contract_address,
+  contract_abi,
+  contract_current_admin,
+  contract_address_stable_coin_usdt,
+  contract_abi_stabel_coin_usdt,
+  contract_address_bnb_kbc,
+  contract_abi_bnb_kbc,
+  contract_price_pool,
+} from "../contract";
+import { check_usd_price, check_KBC_Price } from "../utils/convert-to-eth";
 
 const UserInfo = () => {
   const { address } = useAccount();
@@ -29,6 +42,11 @@ const UserInfo = () => {
   const [starFive, setStarFive] = useState(0);
   const [starSix, setStarSix] = useState(0);
   const [directRoiIncome, setDirectRoiIncome] = useState(0);
+  const [turnOverData, setTurnOverData] = useState();
+  const [kbcVal, setKbcVal] = useState<number>(1);
+  const [usdVal, setUsdVal] = useState<string>("");
+  const [nodeQ_val, setNodeQ_val] = useState<number>(1);
+  const [userReferrer, setUserReferrer] = useState("");
 
   const userData = useReadContract({
     abi: contract_abi,
@@ -57,6 +75,27 @@ const UserInfo = () => {
     }
   }, [userData?.data || userTeamSizeRead?.data]);
 
+  const formItemLayout = {
+    labelCol: { span: 24 },
+    wrapperCol: { span: 24 },
+  };
+  const getUserIdFromUrl = () => {
+    const url = window.location.href;
+
+    const paramStartIndex = url.indexOf("?");
+
+    if (paramStartIndex !== -1) {
+      return url.substring(paramStartIndex + 1);
+    }
+    return null;
+  };
+
+  useEffect(() => {
+    const id = getUserIdFromUrl();
+    if (id) {
+      setUserReferrer(id);
+    }
+  }, []);
   // function 22
   const TopUpTime = useReadContract({
     abi: contract_abi,
@@ -139,7 +178,29 @@ const UserInfo = () => {
     args: [address],
     config,
   });
+  const BalanceOfKBC = useReadContract({
+    abi: contract_abi_bnb_kbc,
+    address: contract_address_bnb_kbc,
+    functionName: "balanceOf",
+    args: [contract_price_pool],
+    config,
+  });
+  const BalanceOfStableCoin = useReadContract({
+    abi: contract_abi_stabel_coin_usdt,
+    address: contract_address_stable_coin_usdt,
+    functionName: "balanceOf",
+    args: [contract_price_pool],
+    config,
+  });
 
+  const USD_price = check_usd_price(
+    BalanceOfKBC.data as bigint,
+    BalanceOfStableCoin.data as bigint
+  );
+
+  useEffect(() => {
+    setUsdVal(USD_price.toString());
+  }, [BalanceOfKBC.data, BalanceOfStableCoin.data]);
   const lastToUpVal = lastTopUp.data
     ? parseFloat(formatEther(lastTopUp.data as BigNumberish)).toFixed(4)
     : 0;
@@ -220,14 +281,14 @@ const UserInfo = () => {
     //       ? parseFloat(formatEther(userDetail[9])).toFixed(4)
     //       : 0,
     // },
-    // {
-    //   id: "10",
-    //   name: "Taken ROI",
-    //   value:
-    //     userDetail && userDetail.length > 0
-    //       ? parseFloat(formatEther(userDetail[10])).toFixed(4)
-    //       : 0,
-    // },
+    {
+      id: "10",
+      name: "Taken ROI",
+      value:
+        userDetail && userDetail.length > 0
+          ? parseFloat(formatEther(userDetail[10])).toFixed(4)
+          : 0,
+    },
     {
       id: "11",
       name: "Stake Times",
@@ -244,13 +305,7 @@ const UserInfo = () => {
           ? parseFloat(formatEther(userDetail[12])).toFixed(4)
           : 0,
     },
-    {
-      id: "13",
-      name: "Top Up Time",
-      value:
-        dayjs(Number(TopUpTime.data) * 1000).format("DD-MMM-YYYY") ||
-        "00-Month-0000",
-    },
+
     {
       id: "14",
       name: "Reg Time",
@@ -436,7 +491,7 @@ const UserInfo = () => {
     config,
   });
   useEffect(() => {
-    console.log("Direct Income ROI ", directROIIncome?.data);
+    // console.log("Direct Income ROI ", directROIIncome?.data);
     setDirectRoiIncome(directROIIncome?.data);
   }, [directROIIncome?.data]);
 
@@ -591,10 +646,7 @@ const UserInfo = () => {
     {
       id: 12,
       level: "Level 12",
-      team:
-        levelsDetails && levelsDetails[10].toString()
-          ? levelsDetails[10].toString()
-          : 0,
+
       income:
         levelsIncomeDetails && levelsIncomeDetails[10].toString()
           ? parseFloat(formatEther(levelsIncomeDetails[10].toString())) +
@@ -637,6 +689,177 @@ const UserInfo = () => {
       income:
         levelsIncomeDetails && levelsIncomeDetails[13].toString()
           ? parseFloat(formatEther(levelsIncomeDetails[13].toString())) +
+            " USDT"
+          : 0 + " USDT",
+    },
+  ];
+
+  const turnOver2 = useReadContract({
+    abi: contract_abi,
+    address: contract_address,
+    functionName: "turnOver",
+    args: [address], // address
+    config,
+  });
+
+  useEffect(() => {
+    // console.log("Direct Income ROI ", turnOver2?.data);
+    setTurnOverData(turnOver2?.data);
+  }, [turnOver2?.data]);
+
+  const rewardDetailData = [
+    {
+      id: 1,
+      level: "Level Number",
+      income: "TO",
+    },
+
+    {
+      id: 2,
+      level: "Level 1",
+      income:
+        level1Income && level1Income[0] > 0
+          ? parseFloat(
+              formatEther((Number(level1Income[0]) * 20).toString())
+            ).toFixed(4) + " USDT"
+          : 0 + " USDT",
+    },
+    {
+      id: 3,
+      level: "Level 2",
+
+      income:
+        turnOverData && turnOverData[0] > 0
+          ? parseFloat(formatEther(turnOverData[0].toString())).toFixed(4) +
+            " USDT"
+          : 0 + " USDT",
+    },
+    {
+      id: 4,
+      level: "Level 3",
+
+      income:
+        turnOverData && turnOverData[1] > 0
+          ? parseFloat(formatEther(turnOverData[1].toString())).toFixed(4) +
+            " USDT"
+          : 0 + " USDT",
+    },
+    {
+      id: 5,
+      level: "Level 4",
+
+      income:
+        turnOverData && turnOverData[2] > 0
+          ? parseFloat(formatEther(turnOverData[2].toString())).toFixed(4) +
+            " USDT"
+          : 0 + " USDT",
+    },
+    {
+      id: 6,
+      level: "Level 5",
+      income:
+        turnOverData && turnOverData[3] > 0
+          ? parseFloat(formatEther(turnOverData[3].toString())).toFixed(4) +
+            " USDT"
+          : 0 + " USDT",
+    },
+    {
+      id: 7,
+      level: "Level 6",
+
+      income:
+        turnOverData && turnOverData[4] > 0
+          ? parseFloat(formatEther(turnOverData[4].toString())).toFixed(4) +
+            " USDT"
+          : 0 + " USDT",
+    },
+    {
+      id: 8,
+      level: "Level 7",
+
+      income:
+        turnOverData && turnOverData[5] > 0
+          ? parseFloat(formatEther(turnOverData[5].toString())).toFixed(4) +
+            " USDT"
+          : 0 + " USDT",
+    },
+    {
+      id: 9,
+      level: "Level 8",
+
+      income:
+        turnOverData && turnOverData[6] > 0
+          ? parseFloat(formatEther(turnOverData[6].toString())).toFixed(4) +
+            " USDT"
+          : 0 + " USDT",
+    },
+    {
+      id: 10,
+      level: "Level 9",
+
+      income:
+        turnOverData && turnOverData[7] > 0
+          ? parseFloat(formatEther(turnOverData[7].toString())).toFixed(4) +
+            " USDT"
+          : 0 + " USDT",
+    },
+    {
+      id: 11,
+      level: "Level 10",
+
+      income:
+        turnOverData && turnOverData[8] > 0
+          ? parseFloat(formatEther(turnOverData[8].toString())).toFixed(4) +
+            " USDT"
+          : 0 + " USDT",
+    },
+    {
+      id: 12,
+      level: "Level 11",
+
+      income:
+        turnOverData && turnOverData[9] > 0
+          ? parseFloat(formatEther(turnOverData[9].toString())).toFixed(4) +
+            " USDT"
+          : 0 + " USDT",
+    },
+    {
+      id: 13,
+      level: "Level 12",
+
+      income:
+        turnOverData && turnOverData[10] > 0
+          ? parseFloat(formatEther(turnOverData[10].toString())).toFixed(4) +
+            " USDT"
+          : 0 + " USDT",
+    },
+    {
+      id: 14,
+      level: "Level 13",
+
+      income:
+        turnOverData && turnOverData[11] > 0
+          ? parseFloat(formatEther(turnOverData[11].toString())).toFixed(4) +
+            " USDT"
+          : 0 + " USDT",
+    },
+    {
+      id: 15,
+      level: "Level 14",
+
+      income:
+        turnOverData && turnOverData[12] > 0
+          ? parseFloat(formatEther(turnOverData[12].toString())).toFixed(4) +
+            " USDT"
+          : 0 + " USDT",
+    },
+    {
+      id: 16,
+      level: "Level 15",
+
+      income:
+        turnOverData && turnOverData[13] > 0
+          ? parseFloat(formatEther(turnOverData[13].toString())).toFixed(4) +
             " USDT"
           : 0 + " USDT",
     },
@@ -742,12 +965,6 @@ const UserInfo = () => {
       userTurnOverRes ||
       starOne,
   ]);
-  // totalDepositRes >= 300 &&
-  // refferedUser >= 7 &&
-  // userTeamSize >= 30 &&
-  // userTurnOverRes >= 10300 &&
-  // starOne >= 2
-
   const kbcrewardInfo = [
     {
       id: "1",
@@ -844,6 +1061,51 @@ const UserInfo = () => {
       income: RanksFunRes && RanksFunRes[13] ? "Yes" : "No",
     },
   ];
+  const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const inputVal = parseInt(event.target.value, 10);
+    setKbcVal(isNaN(inputVal) ? 0 : inputVal);
+    const nodeVal = inputVal * Number(usdVal);
+    setNodeQ_val(nodeVal);
+  };
+
+  // register function start
+  type RegistrationValues = {
+    nodeQuantity: string;
+    referralId: string;
+  };
+
+  const onFinishReg = async (values: RegistrationValues) => {
+    try {
+      let reminderOf = Number(kbcVal % 100);
+
+      if (reminderOf != 0) {
+        alert("Amount Should be multiple of 100");
+        return;
+      }
+      let sendingData = parseEther((Number(nodeQ_val) + 0.02).toString());
+      console.log("Sending Data is: ", sendingData);
+      const { request } = await simulateContract(config, {
+        abi: contract_abi,
+        address: contract_address,
+        functionName: "Registration",
+        args: [values.referralId],
+        value: sendingData,
+      });
+
+      const hash = await writeContract(config, request);
+      console.log("hash", hash);
+    } catch (error) {
+      console.log("Error To Perform: ", error);
+      const startIndex = error.message.indexOf(":") + 2; // Skip ": "
+      const endIndex = error.message.indexOf("\nContract Call");
+      const reason = error.message.substring(startIndex, endIndex).trim();
+      console.log("startIndex", startIndex, endIndex, reason.length);
+      console.log("Extracted reason:", reason);
+      if (reason.length > 100) {
+        alert("Insufficiant amount in account to perform this transaction ");
+      } else alert("Error Got Expected : " + reason);
+    }
+  };
 
   return (
     <>
@@ -957,6 +1219,24 @@ const UserInfo = () => {
           </div>
         </div>
 
+        {/* KBC User Level info */}
+        <div className="col-lg-6">
+          <div className="d-flex justify-content-center mt-4">
+            <div className="network-heading text-center rounded-top-2">
+              Turnover Info
+            </div>
+          </div>
+          <div className="user-box1">
+            {/* rewardDetailData */}
+            {rewardDetailData.map(({ id, level, income }) => (
+              <div key={id} className="user-item">
+                <div className="col-6 user-title">{level}:</div>
+                <div className="col-6 user-value">{income}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
         {/* <div className="row px-5"> */}
         <div className="col-lg-6">
           <div className="d-flex justify-content-center mt-4">
@@ -994,13 +1274,93 @@ const UserInfo = () => {
           </div>
           <div className="d-flex justify-content-center mt-4">
             <a
-              href="https://testnet-scan.kbcfoundation.com/address/0x46D44aFCc97462d9AE0320C9DA6d891c10D71e39?tab=read_contract"
+              href="https://scan.kbcfoundation.com/address/0x46D44aFCc97462d9AE0320C9DA6d891c10D71e39?tab=read_contract"
               target="_blank"
               rel="noopener noreferrer"
               className="contract-link"
             >
-              Contract Address: 0x46D44aFCc97462d9AE0320C9DA6d891c10D71e39
+              Contract Address: 0x82e5Cc7f5736A548775005bfF18cE966FC934049
             </a>
+          </div>
+        </div>
+        {/* Register function  */}
+        <div className="col-lg-6 mt-4">
+          <div className="swap-wrap p-5 mt-40 position-relative">
+            <div className="reg-calac position-absolutex top-15 d-flexx text-center mb-2">
+              <div className="">
+                <input
+                  className="clac-field"
+                  value={kbcVal}
+                  type="number"
+                  pattern="[0-9]*"
+                  name="clac-field"
+                />
+                <span className="kbc-val">
+                  {kbcVal === 1 ? usdVal : Number(usdVal) * kbcVal}
+                </span>
+              </div>
+              <div className="ml-4x mt-2">
+                <span className="clr-base">1 USDT</span>{" "}
+                <span className="clr-base ml-2">=</span>
+                <span className="kbc-val">
+                  {kbcVal === 1 ? usdVal : Number(usdVal)} KBC
+                </span>
+              </div>
+            </div>
+            <div className="swap-head text-center">Register</div>
+            <div className="swap">
+              <div className="swap-box">
+                <Form
+                  {...formItemLayout}
+                  name="register"
+                  onFinish={onFinishReg}
+                  autoComplete="off"
+                >
+                  <Form.Item
+                    label=""
+                    name="nodeQuantity"
+                    rules={[
+                      {
+                        required: true,
+                        message: "Please input your nodeQuantity!",
+                      },
+                    ]}
+                    className="node-title"
+                  >
+                    {/* <input type="hidden"  /> */}
+                    <Input
+                      className="input_filed"
+                      placeholder="0"
+                      value={nodeQ_val}
+                      onChange={handleChange}
+                    />
+                  </Form.Item>
+
+                  <Form.Item
+                    label=""
+                    name="referralId"
+                    rules={[
+                      {
+                        required: true,
+                        message: "Please input your referralId!",
+                      },
+                    ]}
+                  >
+                    <Input
+                      className="input_filed"
+                      placeholder={userReferrer ? userReferrer : "Enter ID"}
+                      value={userReferrer}
+                      onChange={(e) => setUserReferrer(e.target.value)}
+                    />
+                  </Form.Item>
+                  <Form.Item className="text-center">
+                    <Button className="submit-btn" htmlType="submit">
+                      Submit
+                    </Button>
+                  </Form.Item>
+                </Form>
+              </div>
+            </div>
           </div>
         </div>
       </div>

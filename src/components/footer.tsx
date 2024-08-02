@@ -18,27 +18,27 @@ const Footer = () => {
               <h5>Quick Links</h5>
               <ul className="list-unstyled">
                 <li>
-                  <a href="https://www.website.com" target="_blank">
+                  <a href="https://kbcfoundation.com/" target="_blank">
                     Website
                   </a>
                 </li>
                 <li>
-                  <a href="https://www.explorer.com" target="_blank">
+                  <a href="https://scan.kbcfoundation.com/" target="_blank">
                     Explorer
                   </a>
                 </li>
                 <li>
-                  <a href="https://www.bridge.com" target="_blank">
-                    Brige
+                  <a href="https://mgmplay.online/" target="_blank">
+                    Game
                   </a>
                 </li>
                 <li>
-                  <a href="https://www.dex.com" target="_blank">
+                  <a href="https://kbcdex.com/" target="_blank">
                     DEX
                   </a>
                 </li>
                 <li>
-                  <a href="https://www.supernode.com" target="_blank">
+                  <a href="https://kbchain.io/" target="_blank">
                     Supernode
                   </a>
                 </li>
@@ -48,20 +48,11 @@ const Footer = () => {
               <h5>Contact Us</h5>
               <ul>
                 <li>
-                  <a href="https://www.google.com/search?client=firefox-b-d&q=telegram">
+                  <a href="https://t.me/KBchainoffical" target="_blank">
                     Telegram
                   </a>
                 </li>
               </ul>
-              {/* <address>
-                123 Street Name
-                <br />
-                City, Country
-                <br />
-                Phone: 123-456-7890
-                <br />
-                Email: example@example.com
-              </address> */}
             </div>
           </div>
         </div>
