@@ -720,7 +720,7 @@ const UserInfo = () => {
       income:
         level1Income && level1Income[0] > 0
           ? parseFloat(
-              formatEther((Number(level1Income[0]) * 20).toString())
+              formatEther((level1Income[0] * BigInt(20)).toString())
             ).toFixed(4) + " USDT"
           : 0 + " USDT",
     },
